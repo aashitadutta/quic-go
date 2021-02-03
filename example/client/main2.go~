@@ -1,0 +1,119 @@
+package main
+
+import (
+	"io/ioutil"
+	"bytes"
+	"flag"
+	"io"
+	"log"
+	"net/http"
+	"os"
+	"sync"
+	"fmt"
+
+	quic "github.com/lucas-clemente/quic-go"
+
+	"github.com/lucas-clemente/quic-go/h2quic"
+	"github.com/lucas-clemente/quic-go/internal/utils"
+)
+
+func uploadFile(w http.ResponseWriter, r *http.Request) {
+    fmt.Println("File Upload Endpoint Hit")
+    // Parse our multipart form, 10 << 20 specifies a maximum
+    // upload of 10 MB files.
+    r.ParseMultipartForm(10 << 20)
+    // FormFile returns the first file for the given key `myFile`
+    // it also returns the FileHeader so we can get the Filename,
+    // the Header and the size of the file
+	file, handler, err := r.FormFile("myFile")
+	if err != nil {
+        fmt.Println("Error Retrieving the File")
+        fmt.Println(err)
+        return
+    }
+	defer file.Close()
+
+	fmt.Printf("Uploaded File: %+v\n", handler.Filename)
+    fmt.Printf("File Size: %+v\n", handler.Size)
+    fmt.Printf("MIME Header: %+v\n", handler.Header)
+	// Create a temporary file within our temp-images directory that follows
+    // a particular naming pattern
+    tempFile, err := ioutil.TempFile("example/temp-images", "upload-*.png")
+    if err != nil {
+        fmt.Println(err)
+    }
+    defer tempFile.Close()
+
+	// read all of the contents of our uploaded file into a
+    // byte array
+    fileBytes, err := ioutil.ReadAll(file)
+    if err != nil {
+        fmt.Println(err)
+    }
+    // write this byte array to our temporary file
+    tempFile.Write(fileBytes)
+    // return that we have successfully uploaded our file!
+    fmt.Fprintf(w, "Successfully Uploading File")
+}
+
+func setupRoutes() {
+    http.HandleFunc("/upload", uploadFile)
+    http.ListenAndServe(":6121", nil)
+}
+
+func main() {
+	verbose := flag.Bool("v", false, "verbose")
+	multipath := flag.Bool("m", false, "multipath")
+	output := flag.String("o", "", "logging output")
+	flag.Parse()
+	urls := flag.Args()
+
+	if *verbose {
+		utils.SetLogLevel(utils.LogLevelDebug)
+	} else {
+		utils.SetLogLevel(utils.LogLevelInfo)
+	}
+	utils.SetLogTimeFormat("")
+
+	if *output != "" {
+		logfile, err := os.Create(*output)
+		if err != nil {
+			panic(err)
+		}
+		defer logfile.Close()
+		log.SetOutput(logfile)
+	}
+
+	quicConfig := &quic.Config{
+		CreatePaths: *multipath,
+	}
+
+	hclient := &http.Client{
+		Transport: &h2quic.RoundTripper{QuicConfig: quicConfig},
+	}
+
+	var wg sync.WaitGroup
+	wg.Add(len(urls))
+	for _, addr := range urls {
+		utils.Infof("GET %s", addr)
+		go func(addr string) {
+			rsp, err := hclient.Get(addr)
+			if err != nil {
+				panic(err)
+			}
+			utils.Infof("Got response for %s: %#v", addr, rsp)
+
+			body := &bytes.Buffer{}
+			_, err = io.Copy(body, rsp.Body)
+			if err != nil {
+				panic(err)
+			}
+			utils.Infof("Request Body:")
+			utils.Infof("%s", body.Bytes())
+			wg.Done()
+		}(addr)
+	}
+	wg.Wait()
+	fmt.Println("hello World")
+    setupRoutes()
+}

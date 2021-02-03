@@ -130,9 +130,6 @@ func (p *path) SendingAllowed() bool {
 func (p *path) GetStopWaitingFrame(force bool) *wire.StopWaitingFrame {
 	return p.sentPacketHandler.GetStopWaitingFrame(force)
 }
-func (p *path) GetCongestionWindow() protocol.ByteCount {
-	return p.sentPacketHandler.GetCongestionWindow()
-}
 
 func (p *path) GetAckFrame() *wire.AckFrame {
 	ack := p.receivedPacketHandler.GetAckFrame()

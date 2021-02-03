@@ -211,7 +211,7 @@ func (s *session) setup(
 	)
 
 	s.scheduler = &scheduler{}
-	s.scheduler.setup()
+	s.scheduler.setup(s.config.PathScheduler)
 
 	if pconnMgr == nil && conn != nil {
 		// XXX ONLY VALID FOR BENCHMARK!

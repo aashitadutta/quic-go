@@ -20,11 +20,11 @@ func (sch *scheduler) setup() {
 	sch.quotas = make(map[protocol.PathID]uint)
 
 	/*if pathScheduler == "RoundRobin" {*/
-		sch.pathScheduler = sch.selectPathRoundRobin
+		//sch.pathScheduler = sch.selectPathRoundRobin
 	/*} else if pathScheduler == "ECF" {*/
 		//sch.pathScheduler = sch.selectPathEarliestCompletionFirst
 	//} else if pathScheduler == "SA-ECF" {
-		//sch.pathScheduler = sch.selectPathStreamAwareEarliestCompletionFirst
+		sch.pathScheduler = sch.selectPathStreamAwareEarliestCompletionFirst
 	//} else {
 		//sch.pathScheduler = sch.selectPathLowLatency
 	//}

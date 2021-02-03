@@ -90,14 +90,6 @@ type sentPacketHandler struct {
 func (h *sentPacketHandler) GetCongestionWindow() protocol.ByteCount {
 	return h.congestion.GetCongestionWindow()
 }
-
-func (h *sentPacketHandler) GetBytesInFlight() protocol.ByteCount {
-	return h.bytesInFlight
-}
-
-func (h *sentPacketHandler) GetSlowStartThreshold() protocol.ByteCount {
-	return h.congestion.GetSlowStartThreshold()
-}
 // NewSentPacketHandler creates a new sentPacketHandler
 func NewSentPacketHandler(rttStats *congestion.RTTStats, cong congestion.SendAlgorithm, onRTOCallback func(time.Time) bool) SentPacketHandler {
 	var congestionControl congestion.SendAlgorithm
